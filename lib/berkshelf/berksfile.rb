@@ -628,30 +628,15 @@ module Berkshelf
       end
 
       scratch          = Berkshelf.mktmpdir
-      chefignore       = nil
       cached_cookbooks = install(options.slice(:except, :only))
 
       return nil if cached_cookbooks.empty?
 
       cached_cookbooks.each do |cookbook|
         Berkshelf.formatter.vendor(cookbook, destination)
-        cookbook_destination = File.join(scratch, cookbook.cookbook_name, '/')
-        FileUtils.mkdir_p(cookbook_destination)
 
-        # Dir.glob does not support backslash as a File separator
-        src   = cookbook.path.to_s.gsub('\\', '/')
-        files = Dir.glob(File.join(src, '*'))
-
-        if chefignore
-          files = chefignore.remove_ignores_from(files)
-        end
-
-        FileUtils.cp_r(files, cookbook_destination)
-
-        chefignore = Ridley::Chef::Chefignore.new(destination) rescue nil
-        Dir["#{cookbook_destination}/**/*"].each do |path|
-          FileUtils.rm_rf(path) if chefignore.ignored?(path)
-        end if chefignore
+        # Copy the files into the destination directory
+        FileUtils.cp_r(cookbook.path.to_s, scratch)
       end
 
       FileUtils.mv(scratch, destination)
